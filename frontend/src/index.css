@@ -1,0 +1,24 @@
+@font-face {
+  font-family: "SF";
+  src: url("../public/fonts/SF-Pro.ttf") format("truetype");
+  font-weight: inherit;
+  font-style: normal;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.logo-btn:hover {
+  /* Explicitly set hover styles to match the non-hover state */
+  background-color: initial !important; /* or 'transparent' if that was the original */
+}
+
+:root {
+  background-color: black;
+}
+
+.menu :where(li > details > summary):after,
+.menu :where(li > .menu-dropdown-toggle):after {
+  content: none !important;
+}
