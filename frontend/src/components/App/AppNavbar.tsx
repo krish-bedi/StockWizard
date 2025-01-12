@@ -30,6 +30,9 @@ const AppNavbar = () => {
   const [searchTerm, setSearchTerm] = useState("");         // Immediate input value
   const [isFocused, setIsFocused] = useState(false);        // Boolean to show/hide suggestions
   const [debouncedTerm, setDebouncedTerm] = useState("");   // Debounced input value
+  // Boolean to prevent onBlur from firing when clicking suggestion
+  const [isClickingSuggestion, setIsClickingSuggestion] = useState(false);
+
 
   // Wait 100ms after user stops typing before updating debouncedTerm
   useEffect(() => {
@@ -68,10 +71,9 @@ const AppNavbar = () => {
                 onChange={handleSearchChange}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => {
-                  // Small delay to allow clicking on suggestions
-                  setTimeout(() => {
+                  if (!isClickingSuggestion) { // Only hide if not clicking suggestion
                     setIsFocused(false)
-                  }, 100)
+                  }
                 }}
               />
               <svg
@@ -89,7 +91,9 @@ const AppNavbar = () => {
             </label>
             {searchTerm && suggestions && isFocused && (
               <ul className="absolute w-full mt-1 bg-neutral-900 rounded-lg shadow-lg max-h-60 overflow-auto z-50
-                scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thin scrollbar-thumb-neutral-500 scrollbar-track-neutral-900">
+                scrollbar-thumb-rounded-full scrollbar-track-rounded-full scrollbar-thin scrollbar-thumb-neutral-500 scrollbar-track-neutral-900"
+                onMouseEnter={() => setIsClickingSuggestion(true)}
+                onMouseLeave={() => setIsClickingSuggestion(false)}>
                 {suggestions.map((stock) => (
                   <li
                     key={stock.symbol}
@@ -97,6 +101,7 @@ const AppNavbar = () => {
                     onClick={() => {
                       alert(stock.symbol);
                       setIsFocused(false);  // Hide suggestions after selection
+                      setIsClickingSuggestion(false);  // Reset click state
                     }}
                   >
                     <span className="font-bold">{stock.symbol}</span> -{" "}
