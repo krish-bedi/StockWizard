@@ -5,6 +5,7 @@ import { JwtPayload } from '../utils/definition';
 // extend the JwtPayload interface to include type for userId
 
 
+
 const protect = asyncHandler(async (req: any, res: any, next: any) => {
     let token = req.cookies.jwt;
 

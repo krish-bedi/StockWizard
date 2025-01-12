@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from "react-redux";
 import { NavLink, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { RiStockLine } from "react-icons/ri";
 import { useLogoutMutation } from "../../redux/slices/usersApiSlice";
 import { clearCredentials } from "../../redux/slices/authSlice";
@@ -28,15 +28,14 @@ const AppNavbar = () => {
 
   // Handle stock search
   const [searchTerm, setSearchTerm] = useState("");         // Immediate input value
-  const [isFocused, setIsFocused] = useState(false);  // Add this state
-  const [debouncedTerm, setDebouncedTerm] = useState("");   // Last successful search
+  const [isFocused, setIsFocused] = useState(false);        // Boolean to show/hide suggestions
+  const [debouncedTerm, setDebouncedTerm] = useState("");   // Debounced input value
 
   // Wait 100ms after user stops typing before updating debouncedTerm
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedTerm(searchTerm);
     }, 0); // turned off for demo
-
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
@@ -46,8 +45,7 @@ const AppNavbar = () => {
   });
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
+    setSearchTerm(e.target.value);
   };
 
   return (
@@ -121,12 +119,13 @@ const AppNavbar = () => {
                     {userInfo ? (
                       userInfo.imageUrl ? (
                         <img
-                          src={userInfo.imageUrl.slice(0, -2)}
-                          className="rounded-full size-10 hover:"
+                          src={userInfo.imageUrl}
+                          className="rounded-full size-10 outline-2 outline-white"
                           onError={(e) => {
                             e.currentTarget.src =
                               "../../../public/default-pfp.jpg";
                           }}
+                          referrerPolicy="no-referrer" // Add this to handle Google image security
                         />
                       ) : (
                         <div className="rounded-full size-10 flex items-center justify-center">

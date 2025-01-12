@@ -200,22 +200,21 @@ const oAuth = asyncHandler(async (req, res) => {
         console.error("Error creating user");
         res.status(500);
         throw new Error("Internal Server Error");
-      } else {
-        generateToken(res, user._id); // JWT Token
-        res.status(200).json({
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          imageUrl: user.imageUrl,
-        });
       }
+      
+      generateToken(res, user._id);
+      res.status(200).json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        imageUrl: user.imageUrl,
+      });
     }
   } catch (error) {
     console.error(`Error during user registration: ${error}`);
     res.status(500);
     throw new Error("Internal Server Error");
   }
-  res.status(500).json({ message: "Server Error" });
 });
 
 // @desc: Logout user

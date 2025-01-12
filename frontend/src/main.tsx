@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, redirect } from "react-router-dom";
 import { store } from "./store";
 import { Provider } from "react-redux";
 import "./index.css";
@@ -14,6 +14,14 @@ import "react-toastify/dist/ReactToastify.css";
 const SignupPage = () => <AuthPage mode="signup" />;
 const LoginPage = () => <AuthPage mode="login" />;
 const ResetPasswordPage = () => <AuthPage mode="resetpassword" />;
+
+const requireAuth = () => {
+  const userInfo = store.getState().auth.userInfo;
+  if (!userInfo) {
+    return redirect("/login");
+  }
+  return null;
+};
 
 const router = createBrowserRouter([
   {
@@ -44,6 +52,7 @@ const router = createBrowserRouter([
   {
     path: "/app",
     element: <AppPage />,
+    loader: requireAuth,
   },
 ]);
 
