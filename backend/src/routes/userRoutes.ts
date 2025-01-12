@@ -1,6 +1,5 @@
 import express from "express";
-const router = express.Router();
-
+import { protect } from "../middleware/authMiddleware.js";
 import {
   authUser,
   registerUser,
@@ -11,7 +10,8 @@ import {
   forgotPasswordUpdate,
   oAuth,
 } from "../controllers/userController.js";
-import { protect } from "../middleware/authMiddleware.js";
+
+const router = express.Router();
 
 // url: /api/users
 router.post("/oauth", oAuth);

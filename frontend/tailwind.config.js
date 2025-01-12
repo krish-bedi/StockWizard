@@ -27,7 +27,11 @@ export default {
       },
     },
   },
-  plugins: [require("daisyui"), addVariablesForColors],
+  plugins: [
+    require("daisyui"),
+    addVariablesForColors,
+    require('tailwind-scrollbar')({ nocompatible: true, preferredStrategy: 'pseudoelements' }), // scrollbar customization library
+  ],
 };
 
 // This plugin adds each Tailwind color as a global CSS variable, e.g. var(--gray-200).
