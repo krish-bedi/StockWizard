@@ -5,21 +5,22 @@ import PasswordChecklist from "react-password-checklist";
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { updateField } from "../../redux/slices/formSlice";
-import { toast } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 import { useRegisterMutation } from "../../redux/slices/usersApiSlice";
 import { ThreeDots } from "react-loader-spinner";
 import OAuth from "./OAuth";
 
 const Signup = () => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [password, setPassword] = useState("");
+  const [pwIsValid, setpwIsValid] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const dispatch = useDispatch();
   const formData = useSelector((state: any) => state.formData.data);
-
   const [signup, { isLoading }] = useRegisterMutation();
-
-  const [password, setPassword] = useState("");
-  const [pwIsValid, setpwIsValid] = useState(false);
 
   const handleInputChange = (e: any) => {
     const { name, value } = e.target;
@@ -29,34 +30,49 @@ const Signup = () => {
   const submitHandler = async (e: any) => {
     e.preventDefault();
     if (!formData.username || !formData.signupEmail || !password) {
-      toast.error("Please enter username, email and password");
-    } else if (pwIsValid) {
-      // console.log(formData.username, formData.signupEmail, password);
-      try {
-        const name = formData.username;
-        const email = formData.signupEmail;
-        const pass = password;
-        const res = await signup({ name, email, password: pass }).unwrap();
+      setErrorMessage("Please enter username, email and password");
+      return;
+    } 
+    
+    if (!pwIsValid) {
+      setErrorMessage("Password requirements not met");
+      return;
+    }
 
-        if (res.message) {
-          toast.success(res.message, { autoClose: 20000 });
-        }
-      } catch (err: any) {
-        toast.error(err?.data?.message || err?.error);
+    try {
+      const res = await signup({ 
+        name: formData.username, 
+        email: formData.signupEmail, 
+        password 
+      }).unwrap();
+
+      if (res.message) {
+        setShowOverlay(true);
+        toast.success(
+          <div>
+            {res.message[0]}<br/>
+            {res.message[1]}
+          </div>, 
+          {
+            position: "top-center",
+            autoClose: 20000,
+            className: 'signup-toast',
+            bodyClassName: "signup-toast-body",
+            closeOnClick: true,
+            pauseOnHover: true,
+            onClose: () => setShowOverlay(false)
+          }
+        );
       }
-    } else {
-      toast.error("Password requirements not met");
+    } catch (err: any) {
+      setErrorMessage(err?.data?.message || err?.error);
     }
   };
 
-  // Preload the background image
   useEffect(() => {
     const preloadImage = new Image();
-    preloadImage.src =
-      "https://cdn0.tnwcdn.com/wp-content/blogs.dir/1/files/2020/08/xomchart.png";
-    preloadImage.onload = () => {
-      setIsImageLoaded(true); // Set state to true once the image is loaded
-    };
+    preloadImage.src = "https://cdn0.tnwcdn.com/wp-content/blogs.dir/1/files/2020/08/xomchart.png";
+    preloadImage.onload = () => setIsImageLoaded(true);
   }, []);
 
   if (!isImageLoaded) {
@@ -91,6 +107,12 @@ const Signup = () => {
             <OAuth />
             <div className="mt-4 flex items-center justify-between">
               <span className="border-b w-1/5 lg:w-1/4"></span>
+                <a
+                  href="#"
+                  className="text-xs text-center text-gray-900 uppercase"
+                >
+                  or signup with email
+                </a>
               <span className="border-b w-1/5 lg:w-1/4"></span>
             </div>
 
@@ -133,6 +155,9 @@ const Signup = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+                <div className={`mt-2 text-red-500 text-sm font-medium h-5 ${errorMessage ? 'visible' : 'invisible'}`}>
+                  {errorMessage || 'No error'}
+                </div>
                 <div className="mt-2">
                   <PasswordChecklist
                     iconComponents={{
@@ -144,11 +169,10 @@ const Signup = () => {
                       ),
                     }}
                     invalidTextColor="#333"
-                    className="text-xs text-black font-bold"
+                    className="text-xs text-black font-bold grid grid-cols-2"
                     rules={[
                       "minLength",
                       "capital",
-                      "lowercase",
                       "number",
                       "specialChar",
                     ]}
@@ -159,7 +183,6 @@ const Signup = () => {
                     }}
                     messages={{
                       capital: "Contains Uppercase",
-                      lowercase: "Contains Lowercase",
                       specialChar: "Contains Special Character",
                       number: "Contains Number",
                       minLength: "At least 8 characters",
@@ -197,6 +220,21 @@ const Signup = () => {
           </div>
         </div>
       </div>
+      <ToastContainer
+        position="top-center"
+        autoClose={20000}
+        closeOnClick
+        pauseOnHover
+      />
+      {showOverlay && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]"
+          style={{ 
+            WebkitBackdropFilter: 'blur(5px)',
+            backdropFilter: 'blur(5px)'
+          }}
+        />
+      )}
     </>
   );
 };

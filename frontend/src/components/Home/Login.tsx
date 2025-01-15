@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { updateField } from "../../redux/slices/formSlice";
 import { useLoginMutation } from "../../redux/slices/usersApiSlice";
 import { setCredentials } from "../../redux/slices/authSlice";
-import { toast } from "react-toastify";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks/hooks";
 import { ThreeDots } from "react-loader-spinner";
 import OAuth from "./OAuth";
 
 const Login = () => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -57,7 +57,7 @@ const Login = () => {
       dispatch(setCredentials({ ...res }));
       navigate("/app");
     } catch (err: any) {
-      toast.error(err?.data?.message || err?.error);
+      setErrorMessage(err?.data?.message || err?.error);
     }
   };
 
@@ -142,6 +142,9 @@ const Login = () => {
                   type="password"
                   ref={passwordRef}
                 />
+                <div className={`mt-2 text-red-500 text-sm font-medium h-5 ${errorMessage ? 'visible' : 'invisible'}`}>
+                  {errorMessage || 'No error'}
+                </div>
               </div>
               <div className="mt-8">
                 <button

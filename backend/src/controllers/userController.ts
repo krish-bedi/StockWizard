@@ -113,8 +113,10 @@ const registerUser = asyncHandler(async (req: any, res: any) => {
     );
     // Send generic message to avoid leaking information about registered emails
     res.status(200).json({
-      message:
-        "Registration request received. If the email provided is valid, you will receive a confirmation link.",
+      message: [
+        "Registration request received.",
+        "If the email provided is valid, you will receive a confirmation link."
+      ]
     });
     return;
   } else {
@@ -147,8 +149,10 @@ const registerUser = asyncHandler(async (req: any, res: any) => {
       await sendVerifyMail(email, link);
 
       return res.status(200).json({
-        message:
-          "Registration request received. If the email provided is valid, you will receive a confirmation link.",
+        message: [
+          "Registration request received.",
+          "If the email provided is valid, you will receive a confirmation link."
+        ]
       });
     } catch (error) {
       console.error(`Error during user registration: ${error}`);

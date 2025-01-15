@@ -22,3 +22,62 @@
 .menu :where(li > .menu-dropdown-toggle):after {
   content: none !important;
 }
+
+/* Base styles */
+.Toastify {
+  pointer-events: none;
+}
+
+/* Toast container */
+.Toastify__toast-container {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 80% !important;
+  max-width: 400px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  z-index: 10000 !important;
+}
+
+/* Individual toast */
+.signup-toast {
+  background: #1a1a1a !important;
+  color: white !important;
+  font-size: 1.1rem !important;
+  padding: 2rem !important;
+  border-radius: 0.5rem !important;
+  width: 100% !important;
+  text-align: center !important;
+  pointer-events: auto !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  position: relative !important;
+}
+
+/* Style the close button */
+.signup-toast .Toastify__close-button {
+  position: absolute !important;
+  top: 0.5rem !important;
+  right: 0.5rem !important;
+  color: white !important;
+  opacity: 0.8 !important;
+}
+
+.signup-toast .Toastify__close-button:hover {
+  opacity: 1 !important;
+}
+
+/* Make the close button bigger */
+.signup-toast .Toastify__close-button > svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.signup-toast-body {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: inherit !important;
+}
