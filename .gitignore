@@ -1,3 +1,8 @@
 /Tech Stack
 /Todo.md
 /backup keys.txt
+
+# Ignore IDE and editor files
+.vscode/
+.idea/
+*.iml
