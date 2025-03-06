@@ -1,5 +1,10 @@
 import { apiSlice } from "./apiSlice";
 
+// App API Slice: Handle HTTP requests to /api/app
+// All application feature API calls: search stocks, get stock data, etc.
+
+const APP_URL = "/api/app";
+
 interface StockSymbol {
   symbol: string;
   name: string;
@@ -12,7 +17,7 @@ export const appApiSlice = apiSlice.injectEndpoints({
 
     searchStocks: builder.query<StockSymbol[], string>({
       query: (searchTerm) => ({
-        url: `/api/app/search`,
+        url: `${APP_URL}/search`,
         method: "GET",
         params: { q: searchTerm }
       }),

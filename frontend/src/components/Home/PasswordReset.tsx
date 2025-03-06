@@ -10,9 +10,12 @@ import { ThreeDots } from "react-loader-spinner";
 import PasswordChecklist from "react-password-checklist";
 import { FaRegCircleCheck, FaCircleCheck } from "react-icons/fa6";
 import OAuth from "./OAuth";
+import { ToastContainer } from "react-toastify";
 
 const ResetPassword = () => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
@@ -35,11 +38,29 @@ const ResetPassword = () => {
       if (!token) {
         const email = emailRef.current?.value;
         const res = await resetPassword({ email }).unwrap();
-        toast.success(res.message, { autoClose: 10000 });
+        setShowOverlay(true);
+        toast.success(res.message, {
+          position: "top-center",
+          autoClose: 20000,
+          className: "signup-toast",
+          bodyClassName: "signup-toast-body",
+          closeOnClick: true,
+          pauseOnHover: true,
+          onClose: () => setShowOverlay(false)
+        });
       } else {
         if (pwIsValid) {
           const res = await forgotPasswordUpdate({ token, password }).unwrap();
-          toast.success(res.message, { autoClose: 10000 });
+          setShowOverlay(true);
+          toast.success(res.message, {
+            position: "top-center",
+            autoClose: 20000,
+            className: "signup-toast",
+            bodyClassName: "signup-toast-body",
+            closeOnClick: true,
+            pauseOnHover: true,
+            onClose: () => setShowOverlay(false)
+          });
           navigate("/login");
         } else {
           toast.error("Password requirements not met");
@@ -87,7 +108,7 @@ const ResetPassword = () => {
               <RiStockLine /> StockWizard
             </h2>
             <p className="text-xl text-gray-900 text-center">Reset Password</p>
-            <OAuth />
+            <OAuth setErrorMessage={setErrorMessage} />
             <div className="mt-4 flex items-center justify-between">
               <span className="border-b w-1/5 lg:w-1/4"></span>
               <span className="border-b w-1/5 lg:w-1/4"></span>
@@ -200,6 +221,21 @@ const ResetPassword = () => {
           </div>
         </div>
       </div>
+      <ToastContainer
+        position="top-center"
+        autoClose={20000}
+        closeOnClick
+        pauseOnHover
+      />
+      {showOverlay && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999]"
+          style={{ 
+            WebkitBackdropFilter: 'blur(5px)',
+            backdropFilter: 'blur(5px)'
+          }}
+        />
+      )}
     </>
   );
 };

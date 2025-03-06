@@ -2,15 +2,22 @@ import { RiStockLine } from "react-icons/ri";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { updateField } from "../../redux/slices/formSlice";
-import { useLoginMutation } from "../../redux/slices/usersApiSlice";
+import { useLoginMutation, useResendVerificationMutation } from "../../redux/slices/usersApiSlice";
 import { setCredentials } from "../../redux/slices/authSlice";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks/hooks";
 import { ThreeDots } from "react-loader-spinner";
 import OAuth from "./OAuth";
+import { useResendTimer } from '../../hooks/useResendTimer';
 
 const Login = () => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [isResendLoading, setIsResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -18,24 +25,36 @@ const Login = () => {
   const { token } = useParams();
 
   const [login, { isLoading }] = useLoginMutation();
+  const [resendVerification] = useResendVerificationMutation();
 
   const { userInfo } = useAppSelector((state: any) => state.auth);
+
+  const { cooldownTime, canResend, startCooldown } = useResendTimer();
+
+  // Reset verification states when navigating away from token URL
+  useEffect(() => {
+    if (!token) {
+      setIsVerifying(false);
+      setVerificationError(null);
+    }
+  }, [token]);
 
   useEffect(() => {
     if (userInfo) {
       navigate("/app");
     } else if (token) {
+      setIsVerifying(true);
       autoLogin(token);
     }
   }, [navigate, userInfo, token]);
 
   const autoLogin = async (token: string) => {
     try {
-      const res = await login({ token }).unwrap();
+      const res = await login({ token, isVerification: true }).unwrap();
       dispatch(setCredentials({ ...res }));
       navigate("/app");
     } catch (err: any) {
-      console.error("Invalid token");
+      setVerificationError(err?.data?.message || "This verification link has expired. Please request a new one from the login page.");
     }
   };
 
@@ -48,6 +67,21 @@ const Login = () => {
     dispatch(updateField({ name, value }));
   };
 
+  const handleResend = async () => {
+    if (!canResend) return;
+    
+    try {
+      setIsResendLoading(true);
+      await resendVerification({ email: verificationEmail }).unwrap();
+      setIsResendLoading(false);
+      setResendSuccess(true);
+      startCooldown();
+    } catch (err: any) {
+      setIsResendLoading(false);
+      setErrorMessage(err?.data?.message || err?.error);
+    }
+  };
+
   const submitHandler = async (e: any) => {
     e.preventDefault();
     try {
@@ -57,7 +91,13 @@ const Login = () => {
       dispatch(setCredentials({ ...res }));
       navigate("/app");
     } catch (err: any) {
-      setErrorMessage(err?.data?.message || err?.error);
+      if (err?.data?.message === "Email address has not been verified") {
+        setErrorMessage(null);
+        setVerificationEmail(formData.loginEmail);
+        setShowVerification(true);
+      } else {
+        setErrorMessage(err?.data?.message || err?.error);
+      }
     }
   };
 
@@ -70,6 +110,23 @@ const Login = () => {
       setIsImageLoaded(true); // Set state to true once the image is loaded
     };
   }, []);
+
+  if (isVerifying || verificationError) {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen bg-black">
+        {verificationError ? (
+          <div className="text-white text-center px-4">
+            <p className="text-xl mb-4">{verificationError}</p>
+            <NavLink to="/login" className="text-primary hover:text-hover underline">
+              Return to login
+            </NavLink>
+          </div>
+        ) : (
+          <ThreeDots color="white" height={50} width={50} />
+        )}
+      </div>
+    );
+  }
 
   if (!isImageLoaded) {
     return (
@@ -98,7 +155,7 @@ const Login = () => {
               <RiStockLine /> StockWizard
             </h2>
             <p className="text-xl text-gray-900 text-center">Welcome back!</p>
-            <OAuth />
+            <OAuth setErrorMessage={setErrorMessage} />
             <div className="mt-4 flex items-center justify-between">
               <span className="border-b w-1/5 lg:w-1/4"></span>
               <a
@@ -146,33 +203,55 @@ const Login = () => {
                   {errorMessage || 'No error'}
                 </div>
               </div>
-              <div className="mt-8">
-                <button
-                  type="submit"
-                  className={`bg-black text-white font-bold py-2 px-4 w-full rounded hover:bg-hover flex items-center justify-center ${
-                    isLoading ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                  disabled={isLoading}
-                >
-                  Login
-                  <span className="inline-block align-middle ml-1 mt-1">
-                    {isLoading && (
-                      <ThreeDots color="white" height={20} width={20} />
-                    )}
-                  </span>
-                </button>
-              </div>
+              {showVerification ? (
+                <>
+                  <div className="mt-8 mb-3 p-3 bg-green-50 border-l-4 border-green-500 rounded-md">
+                    <p className="text-green-700 text-sm">
+                      Check your email for the verification link.
+                    </p>
+                    <button
+                      onClick={handleResend}
+                      disabled={!canResend || isResendLoading}
+                      className={`mt-2 text-sm text-primary hover:text-hover underline ${
+                        !canResend ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {canResend ? 'Resend verification link' : `Resend available in ${cooldownTime}s`}
+                    </button>
+                  </div>
+                  <div className={`text-sm text-green-600 mb-16 ml-1 transition-opacity duration-300 ${resendSuccess || isResendLoading ? 'opacity-100' : 'opacity-0'}`}>
+                    {isResendLoading ? 'Sending verification email...' : 'New verification email sent!'}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mt-8">
+                    <button
+                      type="submit"
+                      className={`bg-black text-white font-bold py-2 px-4 w-full rounded hover:bg-hover flex items-center justify-center ${
+                        isLoading ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                      disabled={isLoading}
+                    >
+                      Login
+                      <span className="inline-block align-middle ml-1 mt-1">
+                        {isLoading && <ThreeDots color="white" height={20} width={20} />}
+                      </span>
+                    </button>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="border-b w-1/5 md:w-1/4"></span>
+                    <NavLink
+                      to="/signup"
+                      className="text-xs text-gray-900 uppercase hover:underline underline-offset-4"
+                    >
+                      or sign up
+                    </NavLink>
+                    <span className="border-b w-1/5 md:w-1/4"></span>
+                  </div>
+                </>
+              )}
             </form>
-            <div className="mt-4 flex items-center justify-between">
-              <span className="border-b w-1/5 md:w-1/4"></span>
-              <NavLink
-                to="/signup"
-                className="text-xs text-gray-900 uppercase hover:underline underline-offset-4"
-              >
-                or sign up
-              </NavLink>
-              <span className="border-b w-1/5 md:w-1/4"></span>
-            </div>
           </div>
         </div>
       </div>

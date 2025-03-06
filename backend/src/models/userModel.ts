@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import Token from "../models/tokenModel";
+import { IUser } from "../utils/definition";
 
 const userSchema = new mongoose.Schema(
   {
@@ -15,7 +16,6 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
     },
     isVerified: {
       type: Boolean,
@@ -23,7 +23,16 @@ const userSchema = new mongoose.Schema(
     },
     imageUrl: {
       type: String,
-      default: null,
+    },
+    provider: {
+      type: String,
+      required: true,
+      enum: ['local', 'google'],
+    },
+    providerId: {
+      type: String,
+      sparse: true,
+      index: true
     },
   },
   {
@@ -33,20 +42,24 @@ const userSchema = new mongoose.Schema(
 
 // Hash password
 userSchema.pre("save", async function (next) {
-  // Only hash password if its changed.. we dont want to hash again if user updates their username for example
-  if (!this.isModified("password")) {
-    next();
+  // Skip hashing if password isn't modified or if it's an OAuth user
+  if (!this.isModified("password") || !this.password) {
+    return next();
   }
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 // Match user entered password to hashed password in database
 userSchema.methods.matchPassword = async function (enteredPassword: string) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  if (this.provider !== 'local') {
+    return false;  // OAuth users can't use password login
+  }
+  return this.password ? await bcrypt.compare(enteredPassword, this.password) : false;
 };
 
-const User = mongoose.model("User", userSchema);
+const User = mongoose.model<IUser>("User", userSchema);
 
 export default User;

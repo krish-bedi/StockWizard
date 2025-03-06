@@ -1,17 +1,27 @@
 import { JwtPayload as BaseJwtPayload } from "jsonwebtoken";
+import { Request } from 'express';
 import { Document } from "mongoose";
 
-interface JwtPayload extends BaseJwtPayload {
+// Rename to CustomJwtPayload to avoid conflict
+interface CustomJwtPayload extends BaseJwtPayload {
   userId?: string;
 }
 
-interface IUser extends Document {
-  name: string;
-  email: string;
-  password: string;
-  isVerified: boolean;
-  matchPassword: (enteredPassword: string) => Promise<boolean>;
-  imageUrl: string;
+// Add this new interface
+interface CustomRequest extends Request {
+  user?: IUser; // You can make this more specific based on your user type
 }
 
-export { JwtPayload, IUser };
+interface IUser extends Document {
+    _id: string;
+    name: string;
+    email: string;
+    password?: string;  // Optional for OAuth users
+    isVerified: boolean;
+    imageUrl?: string;
+    provider: 'local' | 'google';  // Add provider field
+    providerId?: string;  // Store Google's user ID
+    matchPassword(enteredPassword: string): Promise<boolean>;
+}
+
+export { CustomJwtPayload, CustomRequest, IUser };

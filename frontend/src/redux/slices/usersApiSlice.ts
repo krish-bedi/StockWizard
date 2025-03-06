@@ -1,5 +1,8 @@
 import { apiSlice } from "./apiSlice";
 
+// Users API Slice: Handle HTTP requests to /api/users
+// All auth/user-related API calls: login, register, logout, reset password, etc.
+
 const USERS_URL = "/api/users";
 
 export const usersApiSlice = apiSlice.injectEndpoints({
@@ -45,6 +48,13 @@ export const usersApiSlice = apiSlice.injectEndpoints({
         body: data,
       }),
     }),
+    resendVerification: builder.mutation({
+      query: (data) => ({
+        url: `${USERS_URL}/resend-verification`,
+        method: "POST",
+        body: data,
+      }),
+    }),
   }),
 });
 
@@ -55,4 +65,5 @@ export const {
   useResetPasswordMutation,
   useForgotPasswordUpdateMutation,
   useOauthMutation,
+  useResendVerificationMutation,
 } = usersApiSlice;

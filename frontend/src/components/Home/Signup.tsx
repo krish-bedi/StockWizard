@@ -1,15 +1,17 @@
 import { RiStockLine } from "react-icons/ri";
 import { FaRegCircleCheck, FaCircleCheck } from "react-icons/fa6";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import PasswordChecklist from "react-password-checklist";
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { updateField } from "../../redux/slices/formSlice";
 import { ToastContainer, toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import { useRegisterMutation } from "../../redux/slices/usersApiSlice";
+import { useRegisterMutation, useResendVerificationMutation } from "../../redux/slices/usersApiSlice";
 import { ThreeDots } from "react-loader-spinner";
 import OAuth from "./OAuth";
+import { RootState } from "../../store";
+import { useResendTimer } from '../../hooks/useResendTimer';
 
 const Signup = () => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
@@ -17,14 +19,44 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [pwIsValid, setpwIsValid] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [signupEmail, setSignupEmail] = useState('');
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const [isResendLoading, setIsResendLoading] = useState(false);
+
+  const navigate = useNavigate();
+  const { userInfo } = useSelector((state: RootState) => state.auth);
+
+  useEffect(() => {
+    if (userInfo) {
+      navigate('/app');
+    }
+  }, [navigate, userInfo]);
 
   const dispatch = useDispatch();
   const formData = useSelector((state: any) => state.formData.data);
   const [signup, { isLoading }] = useRegisterMutation();
+  const [resendVerification] = useResendVerificationMutation();
+  const { cooldownTime, canResend, startCooldown } = useResendTimer();
 
   const handleInputChange = (e: any) => {
     const { name, value } = e.target;
     dispatch(updateField({ name, value }));
+  };
+
+  const handleResend = async () => {
+    if (!canResend) return;
+    
+    try {
+      setIsResendLoading(true);
+      await resendVerification({ email: signupEmail }).unwrap();
+      setIsResendLoading(false);
+      setResendSuccess(true);
+      startCooldown();
+    } catch (err: any) {
+      setIsResendLoading(false);
+      setErrorMessage(err?.data?.message || err?.error);
+    }
   };
 
   const submitHandler = async (e: any) => {
@@ -47,22 +79,9 @@ const Signup = () => {
       }).unwrap();
 
       if (res.message) {
-        setShowOverlay(true);
-        toast.success(
-          <div>
-            {res.message[0]}<br/>
-            {res.message[1]}
-          </div>, 
-          {
-            position: "top-center",
-            autoClose: 20000,
-            className: 'signup-toast',
-            bodyClassName: "signup-toast-body",
-            closeOnClick: true,
-            pauseOnHover: true,
-            onClose: () => setShowOverlay(false)
-          }
-        );
+        setErrorMessage(null);
+        setSignupSuccess(true);
+        setSignupEmail(formData.signupEmail);
       }
     } catch (err: any) {
       setErrorMessage(err?.data?.message || err?.error);
@@ -104,7 +123,7 @@ const Signup = () => {
             <p className="text-xl text-gray-900 text-center">
               Create an account
             </p>
-            <OAuth />
+            <OAuth setErrorMessage={setErrorMessage} />
             <div className="mt-4 flex items-center justify-between">
               <span className="border-b w-1/5 lg:w-1/4"></span>
                 <a
@@ -158,38 +177,61 @@ const Signup = () => {
                 <div className={`mt-2 text-red-500 text-sm font-medium h-5 ${errorMessage ? 'visible' : 'invisible'}`}>
                   {errorMessage || 'No error'}
                 </div>
-                <div className="mt-2">
-                  <PasswordChecklist
-                    iconComponents={{
-                      ValidIcon: (
-                        <FaCircleCheck className="mr-1 mt-[1px] text-secondary text-base" />
-                      ),
-                      InvalidIcon: (
-                        <FaRegCircleCheck className="mr-1 mt-[1px] text-base" />
-                      ),
-                    }}
-                    invalidTextColor="#333"
-                    className="text-xs text-black font-bold grid grid-cols-2"
-                    rules={[
-                      "minLength",
-                      "capital",
-                      "number",
-                      "specialChar",
-                    ]}
-                    minLength={8}
-                    value={password}
-                    onChange={(isValid) => {
-                      setpwIsValid(isValid);
-                    }}
-                    messages={{
-                      capital: "Contains Uppercase",
-                      specialChar: "Contains Special Character",
-                      number: "Contains Number",
-                      minLength: "At least 8 characters",
-                    }}
-                  />
-                </div>
+                {!signupSuccess && (
+                  <div className="mt-2">
+                    <PasswordChecklist
+                      iconComponents={{
+                        ValidIcon: (
+                          <FaCircleCheck className="mr-1 mt-[1px] text-secondary text-base" />
+                        ),
+                        InvalidIcon: (
+                          <FaRegCircleCheck className="mr-1 mt-[1px] text-base" />
+                        ),
+                      }}
+                      invalidTextColor="#333"
+                      className="text-xs text-black font-bold grid grid-cols-2"
+                      rules={[
+                        "minLength",
+                        "capital",
+                        "number",
+                        "specialChar",
+                      ]}
+                      minLength={8}
+                      value={password}
+                      onChange={(isValid) => {
+                        setpwIsValid(isValid);
+                      }}
+                      messages={{
+                        capital: "Contains Uppercase",
+                        specialChar: "Contains Special Character",
+                        number: "Contains Number",
+                        minLength: "At least 8 characters",
+                      }}
+                    />
+                  </div>
+                )}
               </div>
+              {signupSuccess && (
+                <>
+                  <div className="mt-8 mb-3 p-3 bg-green-50 border-l-4 border-green-500 rounded-md">
+                    <p className="text-green-700 text-sm">
+                      Verification link has been sent to your email.
+                    </p>
+                    <button
+                      onClick={handleResend}
+                      disabled={!canResend || isResendLoading}
+                      className={`mt-2 text-sm text-primary hover:text-hover underline ${
+                        !canResend ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {canResend ? 'Resend verification link' : `Resend available in ${cooldownTime}s`}
+                    </button>
+                  </div>
+                  <div className={`text-sm text-green-600 mb-16 ml-1 transition-opacity duration-300 ${resendSuccess || isResendLoading ? 'opacity-100' : 'opacity-0'}`}>
+                    {isResendLoading ? 'Sending verification email...' : 'New verification email sent'}
+                  </div>
+                </>
+              )}
               <div className="mt-8">
                 <button
                   type="submit"

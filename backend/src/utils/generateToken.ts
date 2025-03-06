@@ -1,21 +1,73 @@
 import jwt from 'jsonwebtoken';
+import Token from '../models/tokenModel';
+import crypto from 'crypto';
 
-const generateToken = (res: any, userId: any) => {
-    if(!process.env.JWT_SECRET) {
-        console.error('JWT_SECRET is missing from .env file');
+const generateTokens = async (res: any, userId: string) => {
+    if(!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+        console.error('JWT secrets missing from .env file');
         return res.status(500).json({message: 'Internal Server Error'});
     }
-    const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
-        expiresIn: '7d',
+
+    // Generate access token (15 minutes)
+    const accessToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
+        expiresIn: '15m'
     });
 
-    res.cookie('jwt', token, {
+    // Generate new refresh token (14 days)
+    const refreshToken = crypto.randomBytes(40).toString('hex');
+    const REFRESH_TOKEN_DURATION = 14 * 24 * 60 * 60 * 1000; // 14 days in milliseconds
+
+    // Delete any existing refresh tokens for this user
+    await Token.deleteMany({ userId, type: 'refresh' });
+
+    // Save new refresh token
+    await Token.create({
+        userId,
+        token: refreshToken,
+        type: 'refresh',
+        expiresAt: new Date(Date.now() + REFRESH_TOKEN_DURATION)
+    });
+
+    // Set cookies
+    res.cookie('accessToken', accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development',
-        sameSite: 'strict',
-        maxAge: 7 * (24 * 60 * 60 * 1000) // 7 days
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 15 * 60 * 1000, // 15 minutes
+        path: '/',
+        domain: process.env.NODE_ENV === 'development' ? 'localhost' : process.env.COOKIE_DOMAIN,
     });
-}
 
+    res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: REFRESH_TOKEN_DURATION,
+        path: '/',
+        domain: process.env.NODE_ENV === 'development' ? 'localhost' : process.env.COOKIE_DOMAIN,
+    });
+};
 
-export default generateToken;
+// Export both ways for compatibility
+export { generateTokens };
+export default generateTokens;
+
+export const clearTokens = (res: any) => {
+    res.cookie('accessToken', '', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        path: '/',
+        domain: process.env.NODE_ENV === 'development' ? 'localhost' : process.env.COOKIE_DOMAIN,
+        expires: new Date(0)
+    });
+
+    res.cookie('refreshToken', '', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        path: '/',
+        domain: process.env.NODE_ENV === 'development' ? 'localhost' : process.env.COOKIE_DOMAIN,
+        expires: new Date(0)
+    });
+};

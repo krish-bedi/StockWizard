@@ -1,5 +1,9 @@
 import {createSlice} from '@reduxjs/toolkit';
 
+// Form slice: Manages local form state (input values)
+// Stores in state for UX
+
+// Initial state is an empty object
 const initialState = {
     data: {}
 };

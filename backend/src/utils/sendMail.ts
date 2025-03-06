@@ -76,7 +76,7 @@ const sendResetMail = async (email: any, link: any) => {
                 <br />
                 <br />
                 <h4>
-                <p><i> This link expires in 7 days. </i></p>
+                <p><i> This link expires in 24 hours. </i></p>
                 <p> <b> If you did not make this request, then kindly ignore this email </b> </p>
                 </h4>
                 </div>

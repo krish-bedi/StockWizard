@@ -3,7 +3,6 @@ import AppNavbar from "../components/App/AppNavbar";
 import { toast } from "react-toastify";
 
 const AppPage = () => {
-  // Close all initial toast notifications
   useEffect(() => {
     toast.dismiss();
   }, []);
